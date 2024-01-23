@@ -3,17 +3,29 @@ require 'vendor/autoload.php';
 
 use Carbon\Carbon;
 
+<?php
 class RentalRequest
 {
     public $id;
     public $startDate;
     public $endDate;
+    public $nbItems;
+    public $nbDays;
+    public $value;
 
-    public function __construct(string $id, string $startDate, string $endDate)
-    {
+    public function __construct(
+        string $id,
+        string $startDate,
+        string $endDate,
+        int $nbItems,
+        int $value
+    ) {
         $this->id = $id;
         $this->startDate = $startDate;
         $this->endDate = $endDate;
+        $this->nbItems = $nbItems;
+        $this->nbDays = (strtotime($endDate) - strtotime($startDate)) / 86400;
+        $this->value = $value;
     }
 }
 
@@ -56,40 +68,82 @@ function optimizeRentalSchedule($rentalMaterials)
 }
 
 
-function procedeAttribution(array $rentalRequests, $iteration = 0)
+function procedeAttribution(array $rentalRequests, $iteration = 0, $max = 3)
 {
     foreach ($rentalRequests as $r) {
-        $round[] = new RentalRequest($r->id, $r->startDate, $r->endDate);
+        $round[] = new RentalRequest(
+            $r->id,
+            $r->startDate,
+            $r->endDate,
+            $r->nbItems,
+            $r->value,
+        );
     }
 
     $optimized = optimizeRentalSchedule($round);
 
+    $totalDays = 0;
+    $totalDaysLost = 0;
+    $totalValue = 0;
+    $totalValueLost = 0;
     // Output the optimized schedule
-    echo '<br /><br />Rental Schedule '. ++$iteration . ':<br />';
+    echo '<br /><br />Rental Schedule REF '. ++$iteration . ':<br />';
     foreach ($optimized['optimize'] as $m) {
-        echo "{$m->id} (Start Date: {$m->startDate}, End Date: {$m->endDate})<br />";
+        echo "{$m->id} (
+            Start Date: {$m->startDate},
+            End Date: {$m->endDate},
+            Nb Items : {$m->nbItems},
+            Nb Days : {$m->nbDays},
+            Value : {$m->value}
+        )<br />";
+        $totalDays += $m->nbDays;
+        $totalValue += $m->nbDays * $m->value;
     }
+    echo 'TOTAL days : ' . $totalDays . '<br />';
+    echo 'TOTAL value : ' . $totalValue;
 
-    if (count($optimized['not-satisfied']) > 0 ) {
-        procedeAttribution($optimized['not-satisfied'], $iteration);
-    }    
+    if ($iteration < $max)
+    {
+        if (count($optimized['not-satisfied']) > 0 ) {
+            procedeAttribution($optimized['not-satisfied'], $iteration);
+        }
+
+    } else {
+
+        // surbooking
+        echo '<br /><br />Surbooking :<br />';
+        foreach ($optimized['not-satisfied'] as $m) {
+            echo "{$m->id} (
+                Start Date: {$m->startDate},
+                End Date: {$m->endDate},
+                Nb Items : {$m->nbItems},
+                Nb Days : {$m->nbDays},
+                Value : {$m->value}
+            )<br />";
+            $totalDaysLost += $m->nbDays;
+            $totalValueLost += $m->nbDays * $m->value;
+        }
+        echo 'TOTAL Days lost: ' . $totalDaysLost . '<br />';
+        echo 'TOTAL Value lost: ' . $totalValueLost;
+    }
 
 }
 
 // Example usage:
 $rentalRequests = [
-    new RentalRequest('A', '2024-02-01', '2024-02-05'),
-    new RentalRequest('B', '2024-02-03', '2024-02-07'),
-    new RentalRequest('C', '2024-02-08', '2024-02-12'),
-    new RentalRequest('D', '2024-03-05', '2024-03-12'),
-    new RentalRequest('E', '2024-02-26', '2024-03-04'),
-    new RentalRequest('F', '2024-02-14', '2024-02-21'),
-    new RentalRequest('G', '2024-02-10', '2024-02-17'),
-    new RentalRequest('H', '2024-02-22', '2024-02-26'),
-    new RentalRequest('I', '2024-02-19', '2024-03-01'),
-    new RentalRequest('K', '2024-03-05', '2024-03-17'),
-    new RentalRequest('L', '2024-03-15', '2024-03-20'),
-    new RentalRequest('M', '2024-02-22', '2024-02-24'),
+    new RentalRequest('B', '2024-02-03', '2024-02-07', '1', '10.00'),
+    new RentalRequest('C', '2024-02-08', '2024-02-12', '2', '20.00'),
+    new RentalRequest('D', '2024-03-05', '2024-03-12', '1', '10.00'),
+    new RentalRequest('F', '2024-02-14', '2024-02-21', '1', '10.00'),
+    new RentalRequest('G', '2024-02-10', '2024-02-17', '1', '10.00'),
+    new RentalRequest('H', '2024-02-22', '2024-02-26', '1', '10.00'),
+    new RentalRequest('I', '2024-02-19', '2024-03-01', '1', '10.00'),
+    new RentalRequest('K', '2024-03-05', '2024-03-17', '3', '30.00'),
+    new RentalRequest('L', '2024-03-15', '2024-03-20', '1', '10.00'),
+    new RentalRequest('M', '2024-02-22', '2024-02-24', '1', '10.00'),
+    new RentalRequest('N', '2024-02-10', '2024-02-17', '1', '10.00'),
+    new RentalRequest('O', '2024-02-14', '2024-02-20', '1', '10.00'),
 ];
+
 
 procedeAttribution($rentalRequests);
