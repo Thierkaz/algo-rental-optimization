@@ -1,9 +1,7 @@
 <?php
 require 'vendor/autoload.php';
-
 use Carbon\Carbon;
 
-<?php
 class RentalRequest
 {
     public $id;
@@ -41,6 +39,7 @@ function optimizeRentalSchedule($rentalMaterials)
     $rentalRequestNotSatisfied = [];
 
     foreach ($rentalMaterials as $material) {
+
         // Check if the material's schedule overlaps with any existing schedules
         $overlap = false;
         foreach ($optimizedSchedule as $existingMaterial) {
@@ -143,6 +142,8 @@ $rentalRequests = [
     new RentalRequest('M', '2024-02-22', '2024-02-24', '1', '10.00'),
     new RentalRequest('N', '2024-02-10', '2024-02-17', '1', '10.00'),
     new RentalRequest('O', '2024-02-14', '2024-02-20', '1', '10.00'),
+    new RentalRequest('P', '2024-03-07', '2024-03-17', '1', '10.00'),
+    new RentalRequest('Q', '2024-02-20', '2024-03-10', '1', '10.00'),
 ];
 
 
